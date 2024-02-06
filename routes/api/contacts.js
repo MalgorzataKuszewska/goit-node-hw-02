@@ -1,25 +1,37 @@
-const express = require('express')
+const express = require("express");
 
-const router = express.Router()
+const router = express.Router();
 
-router.get('/', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+const uploadAvatar = require("../middleware/multerConfig");
 
-router.get('/:contactId', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+router.post("/upload", uploadAvatar.single("avatar"), (req, res) => {
+  const uploadedFile = req.file;
 
-router.post('/', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+  if (!uploadedFile) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
 
-router.delete('/:contactId', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+  res.json({ message: "File uploaded successfully", file: uploadedFile });
+});
 
-router.put('/:contactId', async (req, res, next) => {
-  res.json({ message: 'template message' })
-})
+router.get("/", async (req, res, next) => {
+  res.json({ message: "template message" });
+});
 
-module.exports = router
+router.get("/:contactId", async (req, res, next) => {
+  res.json({ message: "template message" });
+});
+
+router.post("/", async (req, res, next) => {
+  res.json({ message: "template message" });
+});
+
+router.delete("/:contactId", async (req, res, next) => {
+  res.json({ message: "template message" });
+});
+
+router.put("/:contactId", async (req, res, next) => {
+  res.json({ message: "template message" });
+});
+
+module.exports = router;
