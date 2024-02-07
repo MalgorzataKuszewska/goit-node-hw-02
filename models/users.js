@@ -1,31 +1,28 @@
-import mongoose from "mongoose";
-const { Schema, model } = mongoose;
+const mongoose = require("mongoose");
 
-const userSchema = new Schema({
-  password: {
+const contactSchema = new mongoose.Schema({
+  name: {
     type: String,
-    required: [true, "Password is required"],
+    required: true,
   },
   email: {
     type: String,
-    required: [true, "Email is required"],
-    unique: true,
+    required: true,
   },
-  subscription: {
+  phone: {
     type: String,
-    enum: ["starter", "pro", "business"],
-    default: "starter",
+    required: true,
   },
-  token: {
-    type: String,
-    default: null,
+  favorite: {
+    type: Boolean,
+    default: false,
   },
   owner: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
 });
 
-const User = model("User", userSchema);
+const Contact = mongoose.model("Contact", contactSchema);
 
-export default User;
+module.exports = Contact;

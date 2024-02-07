@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const expressJwt = require("express-jwt");
 const Joi = require("joi");
-const User = require("../models/user");
+const User = require("../models/users");
 const authenticateToken = require("../middleware/authenticateToken");
 
 const authenticateJwt = expressJwt({
@@ -12,7 +12,7 @@ const authenticateJwt = expressJwt({
   algorithms: ["HS256"],
 });
 
-router.get("/logout", authenticateToken, async (req, res) => {
+router.get("/current", authenticateToken, async (req, res) => {
   try {
     const userId = req.user._id;
 
@@ -22,12 +22,12 @@ router.get("/logout", authenticateToken, async (req, res) => {
       return res.status(401).json({ message: "Not authorized" });
     }
 
-    user.token = null;
-    await user.save();
-
-    res.status(204).send();
+    res.status(200).json({
+      email: user.email,
+      subscription: user.subscription || "starter",
+    });
   } catch (error) {
-    console.error("Error during logout:", error);
+    console.error("Error getting current user:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
