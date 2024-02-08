@@ -1,28 +1,38 @@
 const mongoose = require("mongoose");
 
-const contactSchema = new mongoose.Schema({
-  name: {
+const userSchema = new mongoose.Schema({
+  password: {
     type: String,
-    required: true,
+    required: [true, "Password is required"],
   },
   email: {
     type: String,
-    required: true,
+    required: [true, "Email is required"],
+    unique: true,
   },
-  phone: {
+  subscription: {
     type: String,
-    required: true,
+    enum: ["starter", "pro", "business"],
+    default: "starter",
   },
-  favorite: {
-    type: Boolean,
-    default: false,
+  token: {
+    type: String,
+    default: null,
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
+  verify: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: {
+    type: String,
+    required: [true, "Verify token is required"],
+  },
 });
 
-const Contact = mongoose.model("Contact", contactSchema);
+const User = mongoose.model("User", userSchema);
 
-module.exports = Contact;
+module.exports = User;

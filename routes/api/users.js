@@ -6,6 +6,117 @@ const expressJwt = require("express-jwt");
 const Joi = require("joi");
 const User = require("../models/users");
 const authenticateToken = require("../middleware/authenticateToken");
+const sgMail = require("@sendgrid/mail");
+const { v4: uuidv4 } = require("uuid");
+const sendVerificationEmail = require("../utils/sendVerificationEmail");
+
+router.post("/verify", async (req, res) => {
+  try {
+    const schema = Joi.object({
+      email: Joi.string().email().required(),
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    if (user.verify) {
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+    }
+
+    await sendVerificationEmail(email, user.verificationToken);
+
+    res.status(200).json({ message: "Verification email sent" });
+  } catch (error) {
+    console.error("Error resending verification email:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+router.get("/verify/:verificationToken", async (req, res) => {
+  try {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({ verificationToken });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.verificationToken = null;
+    user.verify = true;
+    await user.save();
+
+    res.status(200).json({ message: "Verification successful" });
+  } catch (error) {
+    console.error("Error during verification:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+router.post("/signup", async (req, res) => {
+  try {
+    const schema = Joi.object({
+      email: Joi.string().email().required(),
+      password: Joi.string().min(6).required(),
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    const existingUser = await User.findOne({ email: req.body.email });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email in use" });
+    }
+
+    const verificationToken = uuidv4();
+
+    const msg = {
+      to: req.body.email,
+      from: process.env.EMAIL_SENDER,
+      subject: "Email Verification",
+      text: `Click the link below to verify your email: ${process.env.BASE_URL}/users/verify/${verificationToken}`,
+      html: `<p>Click the link below to verify your email:</p><p><a href="${process.env.BASE_URL}/users/verify/${verificationToken}">Verify email</a></p>`,
+    };
+
+    await sgMail.send(msg);
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+
+    const newUser = new User({
+      email: req.body.email,
+      password: hashedPassword,
+      verificationToken,
+      verify: false,
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      user: {
+        email: newUser.email,
+        subscription: newUser.subscription || "starter",
+      },
+    });
+  } catch (error) {
+    console.error("Error during registration:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 const authenticateJwt = expressJwt({
   secret: "your_secret_key",
